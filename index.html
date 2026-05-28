@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI SPRINT LEAGUE — Squad Leaderboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --bg2: #0f0f1e;
+    --bg3: #141428;
+    --cyan: #00f5ff;
+    --magenta: #ff00aa;
+    --yellow: #ffe600;
+    --green: #00ff88;
+    --orange: #ff6b00;
+    --purple: #9b59ff;
+    --white: #e8e8ff;
+    --dim: #5a5a8a;
+    --border: rgba(0,245,255,0.2);
+    --glow-c: 0 0 10px rgba(0,245,255,0.4), 0 0 20px rgba(0,245,255,0.1);
+    --glow-m: 0 0 10px rgba(255,0,170,0.4), 0 0 20px rgba(255,0,170,0.1);
+    --glow-y: 0 0 10px rgba(255,230,0,0.4), 0 0 20px rgba(255,230,0,0.1);
+    --glow-g: 0 0 10px rgba(0,255,136,0.4), 0 0 20px rgba(0,255,136,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,245,255,0.03) 39px, rgba(0,245,255,0.03) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,245,255,0.03) 39px, rgba(0,245,255,0.03) 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* SCANLINES */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+
+  /* ======= HEADER ======= */
+  header {
+    text-align: center;
+    padding: 48px 20px 32px;
+    position: relative;
+  }
+
+  .header-badge {
+    display: inline-block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 6px 14px;
+    margin-bottom: 20px;
+    letter-spacing: 3px;
+    text-shadow: var(--glow-c);
+    box-shadow: var(--glow-c);
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(28px, 6vw, 64px);
+    letter-spacing: 4px;
+    line-height: 1.1;
+    color: var(--white);
+    text-shadow: 0 0 30px rgba(0,245,255,0.5), 0 0 60px rgba(0,245,255,0.2);
+  }
+
+  h1 span.cyan { color: var(--cyan); }
+  h1 span.mag { color: var(--magenta); text-shadow: 0 0 30px rgba(255,0,170,0.5); }
+
+  .header-sub {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--dim);
+    margin-top: 12px;
+    letter-spacing: 2px;
+  }
+
+  .live-dot {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--green);
+    margin-top: 14px;
+    text-shadow: var(--glow-g);
+  }
+  .live-dot::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .last-updated {
+    font-size: 10px; color: var(--dim); margin-top: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ======= GLOBAL STATS ======= */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 32px 0;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+
+  .stat-card:hover { transform: translateY(-3px); }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .stat-card.c { border-color: rgba(0,245,255,0.3); }
+  .stat-card.c::before { background: var(--cyan); box-shadow: var(--glow-c); }
+  .stat-card.m { border-color: rgba(255,0,170,0.3); }
+  .stat-card.m::before { background: var(--magenta); box-shadow: var(--glow-m); }
+  .stat-card.y { border-color: rgba(255,230,0,0.3); }
+  .stat-card.y::before { background: var(--yellow); box-shadow: var(--glow-y); }
+  .stat-card.g { border-color: rgba(0,255,136,0.3); }
+  .stat-card.g::before { background: var(--green); box-shadow: var(--glow-g); }
+  .stat-card.p { border-color: rgba(155,89,255,0.3); }
+  .stat-card.p::before { background: var(--purple); }
+  .stat-card.o { border-color: rgba(255,107,0,0.3); }
+  .stat-card.o::before { background: var(--orange); }
+
+  .stat-icon { font-size: 20px; margin-bottom: 6px; }
+  .stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-card.c .stat-val { color: var(--cyan); text-shadow: var(--glow-c); }
+  .stat-card.m .stat-val { color: var(--magenta); text-shadow: var(--glow-m); }
+  .stat-card.y .stat-val { color: var(--yellow); text-shadow: var(--glow-y); }
+  .stat-card.g .stat-val { color: var(--green); text-shadow: var(--glow-g); }
+  .stat-card.p .stat-val { color: var(--purple); }
+  .stat-card.o .stat-val { color: var(--orange); }
+
+  .stat-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+
+  /* ======= SECTION TITLES ======= */
+  .section-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    text-shadow: var(--glow-c);
+    margin: 40px 0 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(0,245,255,0.4), transparent);
+  }
+
+  /* ======= SQUAD LEADERBOARD ======= */
+  .squad-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .squad-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 80px 80px 80px 80px 100px;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background: var(--bg2);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .squad-row:hover {
+    background: var(--bg3);
+    border-color: rgba(0,245,255,0.5);
+    transform: translateX(4px);
+  }
+
+  .squad-row.rank-1 { border-color: rgba(255,230,0,0.5); background: rgba(255,230,0,0.04); }
+  .squad-row.rank-1 .rank-num { color: var(--yellow); text-shadow: var(--glow-y); }
+  .squad-row.rank-2 { border-color: rgba(0,245,255,0.4); }
+  .squad-row.rank-2 .rank-num { color: var(--cyan); }
+  .squad-row.rank-3 { border-color: rgba(255,0,170,0.3); }
+  .squad-row.rank-3 .rank-num { color: var(--magenta); }
+
+  .squad-row.header-row {
+    background: transparent;
+    border: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    cursor: default;
+    margin-bottom: 4px;
+  }
+  .squad-row.header-row:hover { transform: none; background: transparent; }
+
+  .rank-num {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--dim);
+    text-align: center;
+  }
+
+  .squad-name-cell { display: flex; align-items: center; gap: 10px; }
+
+  .squad-avatar {
+    width: 36px; height: 36px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .squad-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .squad-members { font-size: 10px; color: var(--dim); margin-top: 2px; font-family: 'Space Mono'; }
+
+  .score-cell {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .total-score {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+    color: var(--yellow);
+    text-shadow: var(--glow-y);
+  }
+
+  .quest-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+  }
+
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.05);
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* ======= QUEST PANELS ======= */
+  .quest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 32px; }
+
+  .quest-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .quest-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+  }
+  .quest-card.q1::before { background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+  .quest-card.q2::before { background: linear-gradient(90deg, var(--magenta), var(--orange)); }
+  .quest-card.q3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+
+  .quest-num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .quest-card.q1 .quest-num { color: var(--cyan); }
+  .quest-card.q2 .quest-num { color: var(--magenta); }
+  .quest-card.q3 .quest-num { color: var(--yellow); }
+
+  .quest-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .quest-weeks { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 12px; }
+
+  .week-cell {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 10px;
+  }
+  .week-cell .wk { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--dim); margin-bottom: 4px; }
+  .week-cell .wk-pts { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; color: var(--cyan); }
+  .week-cell .wk-date { font-size: 9px; color: var(--dim); margin-top: 2px; }
+  .week-cell.active { border-color: rgba(0,245,255,0.5); background: rgba(0,245,255,0.05); }
+  .week-cell.done { border-color: rgba(0,255,136,0.4); }
+  .week-cell.done .wk-pts { color: var(--green); }
+
+  .mini-squad-prog { margin-top: 8px; }
+  .msq-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 10px; }
+  .msq-name { width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Press Stat 2P'; font-size: 8px; color: var(--dim); }
+  .msq-bar-wrap { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+  .msq-bar { height: 100%; border-radius: 3px; }
+  .msq-pts { font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; min-width: 36px; text-align: right; color: var(--yellow); }
+
+  /* ======= KNOWLEDGE SHARING ======= */
+  .ks-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .ks-item {
+    display: grid;
+    grid-template-columns: 1fr 80px 60px;
+    align-items: center;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 14px;
+    gap: 12px;
+  }
+
+  .ks-type-badge {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .badge-session { background: rgba(0,245,255,0.15); color: var(--cyan); border: 1px solid rgba(0,245,255,0.3); }
+  .badge-cheat { background: rgba(155,89,255,0.15); color: var(--purple); border: 1px solid rgba(155,89,255,0.3); }
+  .badge-video { background: rgba(255,107,0,0.15); color: var(--orange); border: 1px solid rgba(255,107,0,0.3); }
+
+  .ks-title-text { font-size: 11px; color: var(--white); }
+  .ks-squad-tag { font-size: 10px; color: var(--dim); margin-top: 2px; }
+
+  .upvote-display { text-align: center; }
+  .upvote-pct { font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700; color: var(--green); }
+  .upvote-label { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--dim); margin-top: 2px; }
+
+  .ks-pts { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 900; color: var(--yellow); text-align: right; }
+
+  /* ======= HOT STREAKS ======= */
+  .streaks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 24px; }
+
+  .streak-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+  }
+  .streak-card:hover { border-color: rgba(255,107,0,0.5); }
+  .streak-card.on-fire { border-color: rgba(255,107,0,0.5); background: rgba(255,107,0,0.05); }
+
+  .streak-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,107,0,0.3);
+    position: relative;
+  }
+  .streak-card.on-fire .streak-avatar { border-color: var(--orange); box-shadow: 0 0 12px rgba(255,107,0,0.4); }
+
+  .streak-fire {
+    position: absolute; top: -6px; right: -4px;
+    font-size: 14px;
+    animation: fire-flicker 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes fire-flicker { from{transform:scale(1) rotate(-5deg)} to{transform:scale(1.2) rotate(5deg)} }
+
+  .streak-info .streak-name { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; }
+  .streak-info .streak-squad { font-size: 9px; color: var(--dim); margin-top: 2px; }
+  .streak-days {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px; font-weight: 900;
+    color: var(--orange);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .streak-days span { font-size: 9px; color: var(--dim); display: block; text-align: center; font-family: 'Press Start 2P', monospace; }
+
+  /* ======= INDIVIDUAL LEADERBOARD ======= */
+  .ind-table { width: 100%; }
+
+  .ind-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 90px 90px 80px;
+    align-items: center;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 6px;
+    background: var(--bg2);
+    transition: all 0.2s;
+  }
+  .ind-row:hover { background: var(--bg3); border-color: rgba(0,245,255,0.4); }
+
+  .ind-row.header-row { background: transparent; border: none; font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--dim); letter-spacing: 1px; cursor: default; }
+
+  .ind-rank { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; color: var(--dim); text-align: center; }
+  .top3 { color: var(--yellow); text-shadow: var(--glow-y); }
+
+  .ind-name-cell { display: flex; align-items: center; gap: 8px; }
+  .ind-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .ind-name { font-size: 11px; font-family: 'Space Mono', monospace; }
+  .ind-squad-chip {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 2px 5px;
+    border-radius: 2px;
+    background: rgba(0,245,255,0.1);
+    color: var(--cyan);
+    border: 1px solid rgba(0,245,255,0.2);
+    margin-top: 2px;
+    display: inline-block;
+  }
+
+  .modules-done { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; color: var(--purple); text-align: center; }
+  .hrs-done { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; color: var(--cyan); text-align: center; }
+  .ind-pts { font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 900; color: var(--yellow); text-align: center; }
+
+  /* ======= SKILLS RADAR ======= */
+  .skills-section { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+  @media (max-width: 640px) { .skills-section { grid-template-columns: 1fr; } }
+
+  .skills-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+  }
+
+  .skill-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .skill-name { font-family: 'Space Mono', monospace; font-size: 10px; width: 140px; flex-shrink: 0; color: var(--white); }
+  .skill-bar-bg { flex: 1; height: 8px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+  .skill-bar-fill { height: 100%; border-radius: 4px; transition: width 1.2s ease; }
+  .skill-count { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; min-width: 36px; text-align: right; }
+
+  /* ======= TABS ======= */
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+
+  .tab-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 8px 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--dim);
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: rgba(0,245,255,0.4); color: var(--cyan); }
+  .tab-btn.active { background: rgba(0,245,255,0.1); border-color: var(--cyan); color: var(--cyan); text-shadow: var(--glow-c); box-shadow: var(--glow-c); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ======= TICKER ======= */
+  .ticker-wrap {
+    background: var(--bg2);
+    border-top: 1px solid rgba(0,245,255,0.2);
+    border-bottom: 1px solid rgba(0,245,255,0.2);
+    padding: 8px 0;
+    overflow: hidden;
+    margin: 0 0 32px;
+    position: relative;
+  }
+  .ticker-label {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--cyan);
+    color: var(--bg);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    display: flex; align-items: center; padding: 0 12px;
+    z-index: 2;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .ticker-inner {
+    display: flex;
+    gap: 60px;
+    animation: ticker-scroll 30s linear infinite;
+    padding-left: 140px;
+    white-space: nowrap;
+  }
+  .ticker-item {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .ticker-item .dot { color: var(--cyan); }
+
+  @keyframes ticker-scroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+  /* ======= QUEST 3 IDEAS ======= */
+  .ideas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+
+  .idea-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    transition: all 0.2s;
+  }
+  .idea-card:hover { border-color: rgba(255,230,0,0.4); transform: translateY(-2px); }
+
+  .idea-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .idea-squad-badge {
+    font-family: 'Press Start 2P', monospace; font-size: 6px;
+    padding: 3px 8px; border-radius: 2px;
+  }
+  .idea-score-chip { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 900; color: var(--yellow); }
+  .idea-title { font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .idea-desc { font-size: 10px; color: var(--dim); line-height: 1.7; }
+
+  .jury-stars { color: var(--yellow); font-size: 12px; margin-top: 8px; letter-spacing: 2px; }
+
+  /* ======= FOOTER ======= */
+  footer {
+    text-align: center;
+    padding: 32px 20px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+  footer p { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--dim); line-height: 2; letter-spacing: 1px; }
+  footer .footer-logo { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 900; color: var(--cyan); letter-spacing: 4px; margin-bottom: 12px; text-shadow: var(--glow-c); }
+
+  /* ======= RESPONSIVE ======= */
+  @media (max-width: 768px) {
+    .squad-row { grid-template-columns: 36px 1fr 70px 90px; }
+    .squad-row .q1-pts, .squad-row .q2-pts, .squad-row .q3-pts { display: none; }
+    .ind-row { grid-template-columns: 32px 1fr 70px 70px; }
+    .ind-row .hrs-col { display: none; }
+    .skills-section { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 500px) {
+    .ks-item { grid-template-columns: 1fr 60px; }
+    .ks-pts { display: none; }
+  }
+
+  .animate-in { animation: fadeUp 0.5s ease forwards; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .trophy { font-size: 16px; }
+
+  .corner-decoration {
+    position: absolute;
+    width: 16px; height: 16px;
+    border-color: var(--cyan);
+    border-style: solid;
+    opacity: 0.5;
+  }
+  .corner-tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+  .corner-tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+  .corner-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+  .corner-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="container">
+    <div class="corner-decoration corner-tl"></div>
+    <div class="corner-decoration corner-tr"></div>
+    <div class="header-badge">SEASON 1 · 2026</div>
+    <h1><span class="cyan">AI</span> ARENA <span class="mag">LEADERBOARD</span></h1>
+    <p class="header-sub">DATA SCIENCE UPSKILLING CHAMPIONSHIP</p>
+    <div class="live-dot">LIVE SCORES</div>
+    <p class="last-updated">Last updated: 14 Apr 2025, 6:00 PM</p>
+    <div class="corner-decoration corner-bl"></div>
+    <div class="corner-decoration corner-br"></div>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-label">UPDATES</div>
+  <div class="ticker-inner">
+    <span class="ticker-item"><span class="dot">▶</span> Neural Ninjas complete Week 2 module with 3 days to spare · +30 pts</span>
+    <span class="ticker-item"><span class="dot">▶</span> Gradient Guardians upload new cheat sheet: "Prompt Engineering 101" · +10 pts</span>
+    <span class="ticker-item"><span class="dot">▶</span> Arjun Mehta is on a 12-day learning streak · 🔥 HOT</span>
+    <span class="ticker-item"><span class="dot">▶</span> Quest 3 submissions open · Deadline: 30 Apr 2025</span>
+    <span class="ticker-item"><span class="dot">▶</span> DataForge Crew knowledge session receives 78% upvotes · +20 pts</span>
+    <span class="ticker-item"><span class="dot">▶</span> Neural Ninjas complete Week 2 module with 3 days to spare · +30 pts</span>
+    <span class="ticker-item"><span class="dot">▶</span> Gradient Guardians upload new cheat sheet: "Prompt Engineering 101" · +10 pts</span>
+    <span class="ticker-item"><span class="dot">▶</span> Arjun Mehta is on a 12-day learning streak · 🔥 HOT</span>
+    <span class="ticker-item"><span class="dot">▶</span> Quest 3 submissions open · Deadline: 30 Apr 2025</span>
+    <span class="ticker-item"><span class="dot">▶</span> DataForge Crew knowledge session receives 78% upvotes · +20 pts</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- GLOBAL STATS -->
+  <div class="stats-grid animate-in">
+    <div class="stat-card c">
+      <div class="stat-icon">⏱</div>
+      <div class="stat-val" id="stat-hrs">247</div>
+      <div class="stat-label">TOTAL<br>LEARNING HRS</div>
+    </div>
+    <div class="stat-card g">
+      <div class="stat-icon">✓</div>
+      <div class="stat-val" id="stat-modules">58</div>
+      <div class="stat-label">MODULES<br>COMPLETED</div>
+    </div>
+    <div class="stat-card m">
+      <div class="stat-icon">🧠</div>
+      <div class="stat-val" id="stat-skills">6</div>
+      <div class="stat-label">SKILLS<br>UNLOCKED</div>
+    </div>
+    <div class="stat-card o">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-val" id="stat-streaks">9</div>
+      <div class="stat-label">ACTIVE<br>STREAKERS</div>
+    </div>
+    <div class="stat-card y">
+      <div class="stat-icon">🏆</div>
+      <div class="stat-val" id="stat-points">1860</div>
+      <div class="stat-label">TOTAL<br>POINTS EARNED</div>
+    </div>
+    <div class="stat-card p">
+      <div class="stat-icon">📤</div>
+      <div class="stat-val" id="stat-ks">7</div>
+      <div class="stat-label">KS<br>SUBMISSIONS</div>
+    </div>
+  </div>
+
+  <!-- SQUAD LEADERBOARD -->
+  <div class="section-title">🏆 SQUAD STANDINGS</div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('all')">ALL QUESTS</button>
+    <button class="tab-btn" onclick="switchTab('q1')">QUEST 1 · E-LEARN</button>
+    <button class="tab-btn" onclick="switchTab('q2')">QUEST 2 · KS</button>
+    <button class="tab-btn" onclick="switchTab('q3')">QUEST 3 · BUILD</button>
+  </div>
+
+  <!-- ALL TAB -->
+  <div id="tab-all" class="tab-content active">
+    <div class="squad-row header-row">
+      <div>#</div>
+      <div>SQUAD</div>
+      <div style="text-align:center">Q1 PTS</div>
+      <div style="text-align:center">Q2 PTS</div>
+      <div style="text-align:center">Q3 PTS</div>
+      <div style="text-align:center">BONUS</div>
+      <div style="text-align:center">TOTAL</div>
+    </div>
+
+    <div class="squad-row rank-1">
+      <div class="rank-num">1</div>
+      <div class="squad-name-cell">
+        <div class="squad-avatar" style="background:rgba(255,230,0,0.1);border-color:rgba(255,230,0,0.3)">⚡</div>
+        <div>
+          <div class="squad-name" style="color:var(--yellow)">Neural Ninjas</div>
+          <div class="squad-members">6 members · All modules done</div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:88%;background:var(--yellow)"></div></div>
+        </div>
+      </div>
+      <div class="score-cell" style="color:var(--cyan)">60</div>
+      <div class="score-cell" style="color:var(--magenta)">55</div>
+      <div class="score-cell" style="color:var(--green)">45</div>
+      <div class="score-cell" style="color:var(--orange)">30</div>
+      <div class="total-score">190</div>
+    </div>
+
+    <div class="squad-row rank-2">
+      <div class="rank-num">2</div>
+      <div class="squad-name-cell">
+        <div class="squad-avatar" style="background:rgba(0,245,255,0.08);border-color:rgba(0,245,255,0.3)">🧠</div>
+        <div>
+          <div class="squad-name" style="color:var(--cyan)">DataForge Crew</div>
+          <div class="squad-members">6 members · 1 pending</div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:76%;background:var(--cyan)"></div></div>
+        </div>
+      </div>
+      <div class="score-cell" style="color:var(--cyan)">50</div>
+      <div class="score-cell" style="color:var(--magenta)">60</div>
+      <div class="score-cell" style="color:var(--green)">30</div>
+      <div class="score-cell" style="color:var(--orange)">20</div>
+      <div class="total-score">160</div>
+    </div>
+
+    <div class="squad-row rank-3">
+      <div class="rank-num">3</div>
+      <div class="squad-name-cell">
+        <div class="squad-avatar" style="background:rgba(255,0,170,0.08);border-color:rgba(255,0,170,0.3)">🚀</div>
+        <div>
+          <div class="squad-name" style="color:var(--magenta)">Gradient Guardians</div>
+          <div class="squad-members">5 members · All modules done</div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:70%;background:var(--magenta)"></div></div>
+        </div>
+      </div>
+      <div class="score-cell" style="color:var(--cyan)">60</div>
+      <div class="score-cell" style="color:var(--magenta)">35</div>
+      <div class="score-cell" style="color:var(--green)">30</div>
+      <div class="score-cell" style="color:var(--orange)">10</div>
+      <div class="total-score">135</div>
+    </div>
+
+    <div class="squad-row">
+      <div class="rank-num">4</div>
+      <div class="squad-name-cell">
+        <div class="squad-avatar" style="background:rgba(0,255,136,0.08)">🌐</div>
+        <div>
+          <div class="squad-name">Synapse Squad</div>
+          <div class="squad-members">6 members · 2 pending</div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:58%;background:var(--green)"></div></div>
+        </div>
+      </div>
+      <div class="score-cell" style="color:var(--cyan)">40</div>
+      <div class="score-cell" style="color:var(--magenta)">40</div>
+      <div class="score-cell" style="color:var(--green)">25</div>
+      <div class="score-cell" style="color:var(--orange)">10</div>
+      <div class="total-score">115</div>
+    </div>
+
+    <div class="squad-row">
+      <div class="rank-num">5</div>
+      <div class="squad-name-cell">
+        <div class="squad-avatar" style="background:rgba(155,89,255,0.08)">🔮</div>
+        <div>
+          <div class="squad-name" style="color:var(--purple)">Model Mavericks</div>
+          <div class="squad-members">5 members · 3 pending</div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:44%;background:var(--purple)"></div></div>
+        </div>
+      </div>
+      <div class="score-cell" style="color:var(--cyan)">20</div>
+      <div class="score-cell" style="color:var(--magenta)">30</div>
+      <div class="score-cell" style="color:var(--green)">30</div>
+      <div class="score-cell" style="color:var(--orange)">10</div>
+      <div class="total-score">90</div>
+    </div>
+  </div>
+
+  <!-- Q1 TAB -->
+  <div id="tab-q1" class="tab-content">
+    <div class="quest-grid">
+      <div class="quest-card q1">
+        <div class="quest-num">QUEST 1 · E-LEARNING</div>
+        <div class="quest-title">Udemy Module Tracker</div>
+        <div class="quest-weeks">
+          <div class="week-cell done">
+            <div class="wk">WEEK 1</div>
+            <div class="wk-pts">✓ DONE</div>
+            <div class="wk-date">Mar 3–10</div>
+          </div>
+          <div class="week-cell active">
+            <div class="wk">WEEK 2</div>
+            <div class="wk-pts">LIVE</div>
+            <div class="wk-date">Mar 10–17</div>
+          </div>
+          <div class="week-cell">
+            <div class="wk">WEEK 3</div>
+            <div class="wk-pts">—</div>
+            <div class="wk-date">Mar 17–24</div>
+          </div>
+        </div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:8px">SQUAD PROGRESS (WK 2)</div>
+        <div class="mini-squad-prog">
+          <div class="msq-row">
+            <div class="msq-name">Neural Ninjas</div>
+            <div class="msq-bar-wrap"><div class="msq-bar" style="width:100%;background:var(--yellow)"></div></div>
+            <div class="msq-pts">60</div>
+          </div>
+          <div class="msq-row">
+            <div class="msq-name">DataForge Crew</div>
+            <div class="msq-bar-wrap"><div class="msq-bar" style="width:84%;background:var(--cyan)"></div></div>
+            <div class="msq-pts">50</div>
+          </div>
+          <div class="msq-row">
+            <div class="msq-name">Gradient Guard.</div>
+            <div class="msq-bar-wrap"><div class="msq-bar" style="width:100%;background:var(--magenta)"></div></div>
+            <div class="msq-pts">60</div>
+          </div>
+          <div class="msq-row">
+            <div class="msq-name">Synapse Squad</div>
+            <div class="msq-bar-wrap"><div class="msq-bar" style="width:67%;background:var(--green)"></div></div>
+            <div class="msq-pts">40</div>
+          </div>
+          <div class="msq-row">
+            <div class="msq-name">Model Mavericks</div>
+            <div class="msq-bar-wrap"><div class="msq-bar" style="width:33%;background:var(--purple)"></div></div>
+            <div class="msq-pts">20</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quest-card q1" style="border-color:rgba(0,245,255,0.15)">
+        <div class="quest-num">POINTS LEGEND</div>
+        <div class="quest-title" style="font-size:11px;margin-bottom:16px">How points are earned</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg3);border-radius:3px;border:1px solid var(--border)">
+            <div style="font-size:20px">📅</div>
+            <div>
+              <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--cyan)">WEEKLY COMPLETION</div>
+              <div style="font-size:10px;color:var(--dim);margin-top:4px">All members done within 7 days</div>
+            </div>
+            <div style="margin-left:auto;font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:var(--yellow)">+20</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg3);border-radius:3px;border:1px solid var(--border)">
+            <div style="font-size:20px">⚡</div>
+            <div>
+              <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--orange)">SPEED BONUS</div>
+              <div style="font-size:10px;color:var(--dim);margin-top:4px">All members done within 5 days</div>
+            </div>
+            <div style="margin-left:auto;font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:var(--yellow)">+10</div>
+          </div>
+          <div style="padding:10px;background:rgba(255,230,0,0.05);border-radius:3px;border:1px solid rgba(255,230,0,0.2)">
+            <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--yellow)">MAX PER WEEK: 30 PTS</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:4px">3 weeks × 30 = 90 pts max from Quest 1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2 TAB -->
+  <div id="tab-q2" class="tab-content">
+    <div class="section-title" style="font-size:9px;margin-top:0">KNOWLEDGE SHARING LOG</div>
+    <div class="ks-list">
+      <div class="ks-item">
+        <div>
+          <span class="ks-type-badge badge-session">SESSION</span>
+          <div class="ks-title-text">Intro to LLM Fine-tuning — hands-on walkthrough</div>
+          <div class="ks-squad-tag">DataForge Crew · Apr 8, 2025</div>
+        </div>
+        <div class="upvote-display">
+          <div class="upvote-pct">78%</div>
+          <div class="upvote-label">UPVOTES</div>
+        </div>
+        <div class="ks-pts">40</div>
+      </div>
+      <div class="ks-item">
+        <div>
+          <span class="ks-type-badge badge-cheat">CHEAT SHEET</span>
+          <div class="ks-title-text">Prompt Engineering 101 — reference card</div>
+          <div class="ks-squad-tag">Gradient Guardians · Apr 9, 2025</div>
+        </div>
+        <div class="upvote-display">
+          <div class="upvote-pct">65%</div>
+          <div class="upvote-label">UPVOTES</div>
+        </div>
+        <div class="ks-pts">20</div>
+      </div>
+      <div class="ks-item">
+        <div>
+          <span class="ks-type-badge badge-video">VIDEO DEMO</span>
+          <div class="ks-title-text">RAG pipeline in 15 minutes — live coding</div>
+          <div class="ks-squad-tag">Neural Ninjas · Apr 10, 2025</div>
+        </div>
+        <div class="upvote-display">
+          <div class="upvote-pct">83%</div>
+          <div class="upvote-label">UPVOTES</div>
+        </div>
+        <div class="ks-pts">35</div>
+      </div>
+      <div class="ks-item">
+        <div>
+          <span class="ks-type-badge badge-session">SESSION</span>
+          <div class="ks-title-text">Evaluating AI outputs — metrics & frameworks</div>
+          <div class="ks-squad-tag">Neural Ninjas · Apr 12, 2025</div>
+        </div>
+        <div class="upvote-display">
+          <div class="upvote-pct">72%</div>
+          <div class="upvote-label">UPVOTES</div>
+        </div>
+        <div class="ks-pts">40</div>
+      </div>
+      <div class="ks-item">
+        <div>
+          <span class="ks-type-badge badge-cheat">CHEAT SHEET</span>
+          <div class="ks-title-text">Vector databases comparison — Pinecone vs Weaviate</div>
+          <div class="ks-squad-tag">Synapse Squad · Apr 13, 2025</div>
+        </div>
+        <div class="upvote-display">
+          <div class="upvote-pct">58%</div>
+          <div class="upvote-label">UPVOTES</div>
+        </div>
+        <div class="ks-pts">20</div>
+      </div>
+      <div class="ks-item">
+        <div>
+          <span class="ks-type-badge badge-video">VIDEO DEMO</span>
+          <div class="ks-title-text">AutoML with H2O — end-to-end pipeline demo</div>
+          <div class="ks-squad-tag">Model Mavericks · Apr 13, 2025</div>
+        </div>
+        <div class="upvote-display">
+          <div class="upvote-pct">47%</div>
+          <div class="upvote-label">UPVOTES</div>
+        </div>
+        <div class="ks-pts">15</div>
+      </div>
+      <div class="ks-item">
+        <div>
+          <span class="ks-type-badge badge-cheat">CHEAT SHEET</span>
+          <div class="ks-title-text">Hugging Face transformers quick start</div>
+          <div class="ks-squad-tag">DataForge Crew · Apr 14, 2025</div>
+        </div>
+        <div class="upvote-display">
+          <div class="upvote-pct">70%</div>
+          <div class="upvote-label">UPVOTES</div>
+        </div>
+        <div class="ks-pts">20</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;font-size:10px;color:var(--dim);line-height:1.8">
+      <strong style="color:var(--cyan);font-family:'Press Start 2P',monospace;font-size:7px">POINTS LEGEND · Q2</strong><br>
+      Knowledge session = 20 pts &nbsp;|&nbsp; Cheat sheet = 10 pts &nbsp;|&nbsp; Video demo = 15 pts<br>
+      70%+ upvotes = +20 bonus &nbsp;|&nbsp; 50%+ upvotes = +10 bonus &nbsp;|&nbsp; Below 50% = no bonus
+    </div>
+  </div>
+
+  <!-- Q3 TAB -->
+  <div id="tab-q3" class="tab-content">
+    <div class="section-title" style="font-size:9px;margin-top:0">IDEA SUBMISSIONS · JURY SCORED</div>
+    <div class="ideas-grid">
+      <div class="idea-card">
+        <div class="idea-header">
+          <span class="idea-squad-badge" style="background:rgba(255,230,0,0.1);color:var(--yellow);border:1px solid rgba(255,230,0,0.3)">Neural Ninjas</span>
+          <div class="idea-score-chip">45</div>
+        </div>
+        <div class="idea-title">AI-powered churn prediction engine</div>
+        <div class="idea-desc">Real-time ML model integrated with CRM to flag at-risk customers 30 days ahead of churn event.</div>
+        <div class="jury-stars">★★★★★</div>
+      </div>
+      <div class="idea-card">
+        <div class="idea-header">
+          <span class="idea-squad-badge" style="background:rgba(0,245,255,0.08);color:var(--cyan);border:1px solid rgba(0,245,255,0.2)">DataForge Crew</span>
+          <div class="idea-score-chip">30</div>
+        </div>
+        <div class="idea-title">Automated data quality assistant</div>
+        <div class="idea-desc">LLM-based pipeline that detects anomalies in ingested data and auto-generates remediation tickets.</div>
+        <div class="jury-stars">★★★★☆</div>
+      </div>
+      <div class="idea-card">
+        <div class="idea-header">
+          <span class="idea-squad-badge" style="background:rgba(255,0,170,0.08);color:var(--magenta);border:1px solid rgba(255,0,170,0.2)">Gradient Guard.</span>
+          <div class="idea-score-chip">30</div>
+        </div>
+        <div class="idea-title">NLP contract review tool</div>
+        <div class="idea-desc">Automated extraction and risk flagging of key clauses in vendor contracts using fine-tuned BERT.</div>
+        <div class="jury-stars">★★★★☆</div>
+      </div>
+      <div class="idea-card">
+        <div class="idea-header">
+          <span class="idea-squad-badge" style="background:rgba(0,255,136,0.08);color:var(--green);border:1px solid rgba(0,255,136,0.2)">Synapse Squad</span>
+          <div class="idea-score-chip">25</div>
+        </div>
+        <div class="idea-title">Intelligent report generation</div>
+        <div class="idea-desc">Monthly business reports auto-drafted from dashboard metrics using GPT-4 with structured prompting.</div>
+        <div class="jury-stars">★★★☆☆</div>
+      </div>
+      <div class="idea-card">
+        <div class="idea-header">
+          <span class="idea-squad-badge" style="background:rgba(155,89,255,0.08);color:var(--purple);border:1px solid rgba(155,89,255,0.2)">Model Mavericks</span>
+          <div class="idea-score-chip">30</div>
+        </div>
+        <div class="idea-title">Internal knowledge base chatbot</div>
+        <div class="idea-desc">RAG-based assistant over internal wiki and SOPs, reducing L1 support queries by an estimated 40%.</div>
+        <div class="jury-stars">★★★★☆</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOT STREAKS -->
+  <div class="section-title">🔥 HOT STREAKS · INDIVIDUALS</div>
+  <div class="streaks-grid">
+    <div class="streak-card on-fire">
+      <div class="streak-avatar">👨‍💻<span class="streak-fire">🔥</span></div>
+      <div class="streak-info">
+        <div class="streak-name">Arjun Mehta</div>
+        <div class="streak-squad">Neural Ninjas</div>
+      </div>
+      <div class="streak-days">12<span>DAYS</span></div>
+    </div>
+    <div class="streak-card on-fire">
+      <div class="streak-avatar">👩‍💻<span class="streak-fire">🔥</span></div>
+      <div class="streak-info">
+        <div class="streak-name">Priya Sharma</div>
+        <div class="streak-squad">DataForge Crew</div>
+      </div>
+      <div class="streak-days">10<span>DAYS</span></div>
+    </div>
+    <div class="streak-card on-fire">
+      <div class="streak-avatar">🧑‍🔬<span class="streak-fire">🔥</span></div>
+      <div class="streak-info">
+        <div class="streak-name">Rohit Das</div>
+        <div class="streak-squad">Gradient Guard.</div>
+      </div>
+      <div class="streak-days">9<span>DAYS</span></div>
+    </div>
+    <div class="streak-card">
+      <div class="streak-avatar">👨‍🔬</div>
+      <div class="streak-info">
+        <div class="streak-name">Neha Iyer</div>
+        <div class="streak-squad">Neural Ninjas</div>
+      </div>
+      <div class="streak-days" style="color:var(--cyan)">7<span>DAYS</span></div>
+    </div>
+    <div class="streak-card">
+      <div class="streak-avatar">👩‍🔬</div>
+      <div class="streak-info">
+        <div class="streak-name">Karan Bhat</div>
+        <div class="streak-squad">Synapse Squad</div>
+      </div>
+      <div class="streak-days" style="color:var(--cyan)">6<span>DAYS</span></div>
+    </div>
+    <div class="streak-card">
+      <div class="streak-avatar">🧑‍💻</div>
+      <div class="streak-info">
+        <div class="streak-name">Ananya Rao</div>
+        <div class="streak-squad">Model Mavericks</div>
+      </div>
+      <div class="streak-days" style="color:var(--purple)">5<span>DAYS</span></div>
+    </div>
+  </div>
+
+  <!-- INDIVIDUAL LEADERBOARD -->
+  <div class="section-title">👾 INDIVIDUAL RANKINGS</div>
+
+  <div class="ind-table">
+    <div class="ind-row header-row">
+      <div>#</div>
+      <div>PLAYER</div>
+      <div style="text-align:center">MODULES</div>
+      <div style="text-align:center">HRS</div>
+      <div style="text-align:center">PTS</div>
+    </div>
+
+    <div id="ind-rows">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- SKILLS ACQUIRED -->
+  <div class="section-title">🧬 SKILLS ACQUIRED ACROSS COHORT</div>
+
+  <div class="skills-section">
+    <div class="skills-card">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--cyan);margin-bottom:16px;letter-spacing:2px">TECHNICAL SKILLS</div>
+      <div class="skill-row">
+        <div class="skill-name">Prompt Engineering</div>
+        <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:90%;background:var(--cyan)"></div></div>
+        <div class="skill-count" style="color:var(--cyan)">27</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">LLM APIs & SDKs</div>
+        <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:77%;background:var(--magenta)"></div></div>
+        <div class="skill-count" style="color:var(--magenta)">23</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">RAG Architecture</div>
+        <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:60%;background:var(--yellow)"></div></div>
+        <div class="skill-count" style="color:var(--yellow)">18</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Fine-tuning Models</div>
+        <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:43%;background:var(--green)"></div></div>
+        <div class="skill-count" style="color:var(--green)">13</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Vector Databases</div>
+        <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:37%;background:var(--purple)"></div></div>
+        <div class="skill-count" style="color:var(--purple)">11</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">AI Evals & Testing</div>
+        <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:27%;background:var(--orange)"></div></div>
+        <div class="skill-count" style="color:var(--orange)">8</div>
+      </div>
+    </div>
+
+    <div class="skills-card">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--magenta);margin-bottom:16px;letter-spacing:2px">COMPLETION HEATMAP</div>
+      <div id="heatmap-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px"></div>
+      <div style="font-size:9px;color:var(--dim);line-height:1.8">
+        <span style="display:inline-block;width:10px;height:10px;background:var(--bg3);border-radius:2px;vertical-align:middle;margin-right:4px"></span>No activity &nbsp;
+        <span style="display:inline-block;width:10px;height:10px;background:rgba(0,245,255,0.3);border-radius:2px;vertical-align:middle;margin-right:4px"></span>Low &nbsp;
+        <span style="display:inline-block;width:10px;height:10px;background:rgba(0,245,255,0.7);border-radius:2px;vertical-align:middle;margin-right:4px"></span>Medium &nbsp;
+        <span style="display:inline-block;width:10px;height:10px;background:var(--cyan);border-radius:2px;vertical-align:middle;margin-right:4px"></span>High
+      </div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:3px;border:1px solid var(--border)">
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--green);margin-bottom:6px">🏆 CURRENT MVP</div>
+        <div style="font-size:11px;font-family:'Orbitron',sans-serif;font-weight:700">Arjun Mehta</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:2px">3 modules · 12 hrs · 12-day streak</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-logo">AI ARENA</div>
+    <p>DATA SCIENCE UPSKILLING CHAMPIONSHIP · SEASON 1 · 2025</p>
+    <p style="margin-top:8px">PUBLISHED EVERY 3–4 DAYS · NEXT UPDATE: 17 APR 2025</p>
+    <p style="margin-top:8px;font-size:6px">POWERED BY UDEMY · BUILT WITH ❤ FOR YOUR TEAM</p>
+  </div>
+</footer>
+
+<script>
+const players = [
+  {rank:1,name:"Arjun Mehta",squad:"Neural Ninjas",color:"#ffe600",emoji:"👨‍💻",modules:3,hrs:12,pts:95},
+  {rank:2,name:"Priya Sharma",squad:"DataForge Crew",color:"#00f5ff",emoji:"👩‍💻",modules:3,hrs:11,pts:88},
+  {rank:3,name:"Rohit Das",squad:"Gradient Guard.",color:"#ff00aa",emoji:"🧑‍🔬",modules:3,hrs:10,pts:82},
+  {rank:4,name:"Neha Iyer",squad:"Neural Ninjas",color:"#ffe600",emoji:"👩‍🔬",modules:3,hrs:10,pts:78},
+  {rank:5,name:"Karan Bhat",squad:"Synapse Squad",color:"#00ff88",emoji:"👨‍🔬",modules:3,hrs:9,pts:72},
+  {rank:6,name:"Ananya Rao",squad:"Model Mavericks",color:"#9b59ff",emoji:"🧑‍💻",modules:2,hrs:8,pts:65},
+  {rank:7,name:"Vivek Nair",squad:"DataForge Crew",color:"#00f5ff",emoji:"👨‍💻",modules:3,hrs:9,pts:62},
+  {rank:8,name:"Sunita Kapoor",squad:"Neural Ninjas",color:"#ffe600",emoji:"👩‍💻",modules:2,hrs:7,pts:58},
+  {rank:9,name:"Aakash Joshi",squad:"Gradient Guard.",color:"#ff00aa",emoji:"🧑‍🔬",modules:2,hrs:8,pts:54},
+  {rank:10,name:"Meera Pillai",squad:"Synapse Squad",color:"#00ff88",emoji:"👩‍🔬",modules:2,hrs:7,pts:50},
+];
+
+const indRows = document.getElementById('ind-rows');
+players.forEach(p => {
+  const div = document.createElement('div');
+  div.className = 'ind-row';
+  div.innerHTML = `
+    <div class="ind-rank ${p.rank<=3?'top3':''}">${p.rank<=3?['🥇','🥈','🥉'][p.rank-1]:p.rank}</div>
+    <div class="ind-name-cell">
+      <div class="ind-avatar">${p.emoji}</div>
+      <div>
+        <div class="ind-name">${p.name}</div>
+        <span class="ind-squad-chip" style="color:${p.color};border-color:${p.color}40;background:${p.color}12">${p.squad}</span>
+      </div>
+    </div>
+    <div class="modules-done">${p.modules}/3</div>
+    <div class="hrs-done hrs-col">${p.hrs}h</div>
+    <div class="ind-pts">${p.pts}</div>
+  `;
+  indRows.appendChild(div);
+});
+
+// Heatmap
+const heatmap = document.getElementById('heatmap-grid');
+const levels = [0,0,1,2,3,2,1,1,2,3,3,2,1,0,1,2,3,2,3,2,1,2,3,3,2,1,0,1,2,2,1,2,3,2,2,3,3,2,1,2,3,2];
+levels.forEach(l => {
+  const cell = document.createElement('div');
+  cell.style.cssText = `width:100%;padding-top:100%;border-radius:2px;background:${['rgba(255,255,255,0.04)','rgba(0,245,255,0.2)','rgba(0,245,255,0.5)','rgba(0,245,255,0.95)'][l]}`;
+  heatmap.appendChild(cell);
+});
+
+// Tab switching
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Animate stat counters
+function animateCount(el, target) {
+  let current = 0;
+  const step = Math.ceil(target / 40);
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current.toLocaleString();
+    if (current >= target) clearInterval(timer);
+  }, 30);
+}
+
+setTimeout(() => {
+  animateCount(document.getElementById('stat-hrs'), 247);
+  animateCount(document.getElementById('stat-modules'), 58);
+  animateCount(document.getElementById('stat-skills'), 6);
+  animateCount(document.getElementById('stat-streaks'), 9);
+  animateCount(document.getElementById('stat-points'), 1860);
+  animateCount(document.getElementById('stat-ks'), 7);
+}, 300);
+</script>
+</body>
+</html>
